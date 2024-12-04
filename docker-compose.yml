@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Servicio del frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:3000
+
+  # Servicio del backend
+  backend:
+    build:
+      context: ./servidor
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - FRONTEND_URL=http://localhost:80
+    volumes:
+      - ./servidor/database.sqlite:/app/database.sqlite
+    restart: unless-stopped
+
+  # Servicio de base de datos SQLite (opcional, ya que es un archivo)
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080 

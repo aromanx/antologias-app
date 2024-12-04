@@ -1,0 +1,12 @@
+:root {
+  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --bg-color: #fff;
+}
+
+.book-content, .page {
+  background: var(--bg-color);
+}
+
+.book-content {
+  box-shadow: var(--shadow-sm);
+}
