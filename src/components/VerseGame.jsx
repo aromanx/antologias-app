@@ -5,151 +5,147 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { jsPDF } from "jspdf";
 import { AlertCircle } from "lucide-react";
 
-export function VerseGame({ contenido }) {
-  const [versosOriginales, setVersosOriginales] = useState([]);
-  const [versosNuevos, setVersosNuevos] = useState([]);
-  const [error, setError] = useState(null);
+export function VerseGame({ content, title, author, onClose }) {
+  const [originalVerses, setOriginalVerses] = useState([]);
+  const [selectedVerses, setSelectedVerses] = useState([]);
+  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    try {
-      if (!contenido) {
-        throw new Error("No hay contenido para mostrar");
-      }
-      // Dividir el contenido en versos individuales
-      const versos = contenido
-        .split("\n")
-        .filter(verso => verso.trim() !== "")
-        .map((verso, index) => ({
-          id: index,
-          texto: verso.trim(),
-          seleccionado: false
-        }));
-      
-      if (versos.length === 0) {
-        throw new Error("No se encontraron versos en el contenido");
-      }
+    // Dividir el contenido en versos y filtrar líneas vacías
+    const verses = content
+      .split('\n')
+      .map(verse => verse.trim())
+      .filter(verse => verse.length > 0);
+    setOriginalVerses(verses);
+  }, [content]);
 
-      setVersosOriginales(versos);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al procesar los versos:", err);
-    }
-  }, [contenido]);
-
-  const handleVersoClick = (verso, esOriginal) => {
-    try {
-      if (esOriginal) {
-        // Mover verso del panel original al nuevo
-        setVersosOriginales(prev => prev.filter(v => v.id !== verso.id));
-        setVersosNuevos(prev => [...prev, verso]);
-      } else {
-        // Mover verso del panel nuevo al original
-        setVersosNuevos(prev => prev.filter(v => v.id !== verso.id));
-        setVersosOriginales(prev => [...prev, verso]);
-      }
-    } catch (err) {
-      setError("Error al mover el verso");
-      console.error("Error al manejar el clic:", err);
+  const handleVerseClick = (verse, index, fromSelected = false) => {
+    if (fromSelected) {
+      // Devolver verso a la columna original
+      setSelectedVerses(prev => prev.filter((_, i) => i !== index));
+      setOriginalVerses(prev => [...prev, verse]);
+    } else {
+      // Mover verso a la columna seleccionada
+      setOriginalVerses(prev => prev.filter((_, i) => i !== index));
+      setSelectedVerses(prev => [...prev, verse]);
     }
   };
 
-  const handleDescargarPDF = () => {
-    try {
-      const doc = new jsPDF();
-      const poema = versosNuevos.map(v => v.texto).join("\n");
-      
-      // Configurar fuente para soporte de caracteres especiales
-      doc.setFont("helvetica");
-      doc.setFontSize(12);
+  useEffect(() => {
+    // Verificar si todos los versos han sido seleccionados
+    setIsComplete(originalVerses.length === 0);
+  }, [originalVerses]);
 
-      // Título
-      doc.setFontSize(16);
-      doc.text("Mi Poema Creado", 20, 20);
-      
-      // Contenido del poema
-      doc.setFontSize(12);
-      const lineas = doc.splitTextToSize(poema, 170);
-      doc.text(lineas, 20, 40);
-
-      // Fecha de creación
-      const fecha = new Date().toLocaleDateString();
-      doc.setFontSize(10);
-      doc.text(`Creado el: ${fecha}`, 20, doc.internal.pageSize.height - 20);
-
-      doc.save("mi_poema.pdf");
-    } catch (err) {
-      setError("Error al generar el PDF");
-      console.error("Error al descargar PDF:", err);
-    }
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    
+    // Configurar el documento
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(title, 20, 20);
+    
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(12);
+    doc.text(`por ${author}`, 20, 30);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    
+    // Agregar los versos
+    let y = 40;
+    selectedVerses.forEach((verse) => {
+      // Dividir versos largos en múltiples líneas
+      const lines = doc.splitTextToSize(verse, 170);
+      lines.forEach(line => {
+        if (y > 280) { // Si se acerca al final de la página
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, 20, y);
+        y += 7;
+      });
+    });
+    
+    // Guardar el PDF
+    doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}_reordenado.pdf`);
   };
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-red-500">
-        <AlertCircle className="h-8 w-8 mb-2" />
-        <p>{error}</p>
-      </div>
-    );
-  }
 
   return (
-    <div className="grid grid-cols-2 gap-4 p-4">
-      {/* Panel de versos originales */}
-      <div className="border rounded-lg p-4">
-        <h3 className="text-lg font-semibold mb-4">
-          Versos Originales ({versosOriginales.length})
-        </h3>
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-2">
-            {versosOriginales.map((verso) => (
-              <div
-                key={verso.id}
-                onClick={() => handleVersoClick(verso, true)}
-                className="p-2 bg-muted hover:bg-accent/50 rounded cursor-pointer transition-colors"
-              >
-                {verso.texto}
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+    <div className="flex flex-col h-full gap-4">
+      <div className="grid grid-cols-2 gap-4 h-[60vh]">
+        {/* Columna de versos originales */}
+        <div className="border rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Versos Disponibles</h3>
+          <ScrollArea className="h-full">
+            <div className="space-y-2">
+              {originalVerses.map((verse, index) => (
+                <div
+                  key={`original-${index}`}
+                  onClick={() => handleVerseClick(verse, index)}
+                  className="p-2 bg-muted hover:bg-accent hover:text-accent-foreground rounded cursor-pointer transition-colors"
+                >
+                  {verse}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Columna de versos seleccionados */}
+        <div className="border rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Tu Poema</h3>
+          <ScrollArea className="h-full">
+            <div className="space-y-2">
+              {selectedVerses.map((verse, index) => (
+                <div
+                  key={`selected-${index}`}
+                  onClick={() => handleVerseClick(verse, index, true)}
+                  className="p-2 bg-primary/10 hover:bg-primary/20 rounded cursor-pointer transition-colors"
+                >
+                  {verse}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
-      {/* Panel de nuevo poema */}
-      <div className="border rounded-lg p-4">
-        <h3 className="text-lg font-semibold mb-4">
-          Mi Nuevo Poema ({versosNuevos.length})
-        </h3>
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-2">
-            {versosNuevos.map((verso) => (
-              <div
-                key={verso.id}
-                onClick={() => handleVersoClick(verso, false)}
-                className="p-2 bg-primary/10 hover:bg-accent/50 rounded cursor-pointer transition-colors"
-              >
-                {verso.texto}
-              </div>
-            ))}
+      <div className="flex justify-between items-center mt-4">
+        {isComplete ? (
+          <div className="flex items-center gap-2 text-green-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>¡Has ordenado todos los versos!</span>
           </div>
-        </ScrollArea>
-        {versosOriginales.length === 0 && versosNuevos.length > 0 && (
-          <div className="mt-4">
-            <Button 
-              onClick={handleDescargarPDF}
-              className="w-full"
-            >
-              Descargar PDF
-            </Button>
+        ) : (
+          <div className="text-muted-foreground">
+            {originalVerses.length} versos restantes
           </div>
         )}
+        
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Cerrar
+          </Button>
+          <Button
+            onClick={downloadPDF}
+            disabled={!isComplete}
+          >
+            Descargar PDF
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
 VerseGame.propTypes = {
-  contenido: PropTypes.string.isRequired
+  content: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  author: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired
 };
 
 export default VerseGame; 

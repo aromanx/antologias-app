@@ -4,7 +4,7 @@ import { Book } from "@/components/Book";
 import { ENDPOINTS } from '@/config/config';
 import { useAuth0 } from "@auth0/auth0-react";
 import { Input } from "@/components/ui/input";
-import { Search, Volume2, VolumeX, Heart } from "lucide-react";
+import { Search, Volume2, VolumeX, Heart, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tabs,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from 'react-markdown';
+import { VerseGame } from "@/components/VerseGame";
 
 // Importación diferida del panel de administración
 const AdminPanel = React.lazy(() => import('@/components/AdminPanel'));
@@ -51,6 +52,7 @@ function App() {
   const [selectedPromptType, setSelectedPromptType] = useState("analisis");
   const [selectedAntologia, setSelectedAntologia] = useState(null);
   const [likedAntologias, setLikedAntologias] = useState(new Set());
+  const [selectedAutor, setSelectedAutor] = useState(null);
 
   // Auth0
   const { isAuthenticated, loginWithRedirect, logout, user } = useAuth0();
@@ -246,7 +248,7 @@ function App() {
       ${antologia.contenido}
 
       Compara con:
-      1. Obras similares de la época
+      1. Obras similares de la poca
       2. Otros autores de Colima
       3. Tendencias literarias contemporáneas
       4. Influencias y diferencias
@@ -839,6 +841,61 @@ function App() {
                             </DialogContent>
                           </Dialog>
 
+                          {/* Agregar el nuevo botón para el juego de versos */}
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center"
+                                title="Jugar con versos"
+                              >
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  className="h-4 w-4 mr-2"
+                                >
+                                  <path 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth={2} 
+                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                  />
+                                  <path 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth={2} 
+                                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Jugar con Versos
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh]">
+                              <DialogHeader>
+                                <DialogTitle>Juego de Versos - {antologia.titulo}</DialogTitle>
+                                <DialogDescription>
+                                  Pon a prueba tu conocimiento de esta obra de {antologia.autorObra}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="mt-4 overflow-y-auto">
+                                <VerseGame 
+                                  content={antologia.contenido}
+                                  title={antologia.titulo}
+                                  author={antologia.autorObra}
+                                  onClose={() => {
+                                    const dialog = document.querySelector('[role="dialog"]');
+                                    if (dialog) {
+                                      dialog.close();
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+
                           {/* Nuevo botón para biografía del autor */}
                           <Dialog>
                             <DialogTrigger asChild>
@@ -932,6 +989,50 @@ function App() {
                   }}
                   isPlaying={isPlaying}
                   userId={null}
+                  renderAutorActions={(autor) => (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="ml-2"
+                          title="Ver biografía"
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh]">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-4">
+                            <div className="w-full text-center mb-4">
+                              <div className="relative w-48 h-48 mx-auto mb-4">
+                                <img
+                                  src={autor.urlfoto}
+                                  alt={autor.nombre}
+                                  className="w-full h-full object-cover rounded-lg shadow-lg"
+                                  onError={(e) => {
+                                    e.target.src = 'https://via.placeholder.com/150';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-lg"></div>
+                              </div>
+                              <h2 className="text-2xl font-bold">{autor.nombre}</h2>
+                            </div>
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-6 overflow-y-auto max-h-[60vh] pr-2">
+                          <div className="prose prose-sm max-w-none">
+                            <div className="bg-muted/50 p-6 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-4">Biografía</h3>
+                              <ReactMarkdown>
+                                {autor.biografia || "No hay biografía disponible"}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 />
               </div>
             </TabsContent>

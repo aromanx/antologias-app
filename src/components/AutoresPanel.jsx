@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { ENDPOINTS } from '@/config/config';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Search, PlusCircle, Edit, Trash2, Book } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, PlusCircle, Edit, Trash2, Book, Info } from "lucide-react";
 import LoadingSpinner from './LoadingSpinner';
 import {
   Dialog,
@@ -11,12 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PropTypes from 'prop-types';
 import { Book as BookComponent } from './Book';
+import ReactMarkdown from 'react-markdown';
 
-export function AutoresPanel({ readOnly = false }) {
+export function AutoresPanel({ readOnly = false, onAntologiaSelect, onPlayAudio, isPlaying, userId, renderAutorActions }) {
   const [autores, setAutores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -285,7 +287,76 @@ export function AutoresPanel({ readOnly = false }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {autores.map((autor) => (
-              <Card key={autor.idautor} className="overflow-hidden">
+              <Card key={autor.idautor}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {autor.nombre}
+                    <div className="flex items-center gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            title="Ver biografía"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh]">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-4">
+                              <div className="w-full text-center mb-4">
+                                <div className="relative w-48 h-48 mx-auto mb-4">
+                                  <img
+                                    src={autor.urlfoto}
+                                    alt={autor.nombre}
+                                    className="w-full h-full object-cover rounded-lg shadow-lg"
+                                    onError={(e) => {
+                                      e.target.src = 'https://via.placeholder.com/150';
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-lg"></div>
+                                </div>
+                                <h2 className="text-2xl font-bold">{autor.nombre}</h2>
+                              </div>
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-6 overflow-y-auto max-h-[60vh] pr-2">
+                            <div className="prose prose-sm max-w-none">
+                              <div className="bg-muted/50 p-6 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-4">Biografía</h3>
+                                <ReactMarkdown>
+                                  {autor.biografia || "No hay biografía disponible"}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      {!readOnly && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditMode(true);
+                              setCurrentAutor(autor);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteAutor(autor.idautor)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
                 <div className="relative h-48">
                   <img
                     src={autor.urlfoto}
@@ -467,9 +538,19 @@ export function AutoresPanel({ readOnly = false }) {
 }
 
 AutoresPanel.propTypes = {
-  readOnly: PropTypes.bool
+  readOnly: PropTypes.bool,
+  onAntologiaSelect: PropTypes.func,
+  onPlayAudio: PropTypes.func,
+  isPlaying: PropTypes.bool,
+  userId: PropTypes.string,
+  renderAutorActions: PropTypes.func
 };
 
 AutoresPanel.defaultProps = {
-  readOnly: false
+  readOnly: false,
+  onAntologiaSelect: null,
+  onPlayAudio: null,
+  isPlaying: false,
+  userId: null,
+  renderAutorActions: null
 }; 
