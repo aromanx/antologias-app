@@ -37,6 +37,9 @@ import { VerseGame } from "@/components/VerseGame";
 // Importación diferida del panel de administración
 const AdminPanel = React.lazy(() => import('@/components/AdminPanel'));
 
+// Agregar la constante con los correos permitidos al inicio del archivo, después de los imports
+const ADMIN_EMAILS = ['aroman@ucol.mx', 'sanchezp@ucol.mx'];
+
 function App() {
   // Estados
   const [antologias, setAntologias] = useState([]);
@@ -530,12 +533,14 @@ function App() {
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <span className="text-sm">Bienvenido, {user.name}</span>
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowAdmin(!showAdmin)}
-                >
-                  {showAdmin ? 'Ver Contenido' : 'Administración'}
-                </Button>
+                {ADMIN_EMAILS.includes(user.email) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAdmin(!showAdmin)}
+                  >
+                    {showAdmin ? 'Ver Contenido' : 'Administración'}
+                  </Button>
+                )}
                 <button
                   onClick={() => logout({ returnTo: window.location.origin })}
                   className="bg-white text-primary px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors"
@@ -557,7 +562,7 @@ function App() {
 
       {/* Contenido Principal */}
       <main className="container mx-auto px-4 py-8">
-        {showAdmin && isAuthenticated ? (
+        {showAdmin && isAuthenticated && ADMIN_EMAILS.includes(user.email) ? (
           <Suspense fallback={<LoadingSpinner />}>
             <AdminPanel onAntologiaChange={fetchData} />
           </Suspense>
